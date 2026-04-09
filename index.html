@@ -752,12 +752,12 @@ async function download() {
   const off = document.createElement('canvas');
   renderTo(off, 1); // export at 1:1 scale (already export-space)
 
-  const mime = 'image/png';
-  const blob = await new Promise(r => off.toBlob(r, mime));
+  const mime = 'image/jpeg';
+ const blob = await new Promise(r => off.toBlob(r, mime, 0.75));
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   const name = (S.creditName || 'artwork').replace(/\s+/g,'-').toLowerCase();
-  a.download = `${name}-${S.fmt}-${S.exportSize}px.png`;
+  a.download = `${name}-${S.fmt}-${S.exportSize}px.jpg`;
   a.href = url; a.click();
   URL.revokeObjectURL(url);
 }
