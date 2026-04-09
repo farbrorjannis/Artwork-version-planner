@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Artwork Version Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&family=Dancing+Script:wght@400;600&family=Caveat&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:        #f7f3ee;
+  --surface:   #f0ebe3;
+  --panel:     #ece6dd;
+  --border:    #ddd7ce;
+  --border-md: #cec7bc;
+  --earth:     #7a5c4a;
+  --earth-dk:  #5e4538;
+  --earth-lt:  #a07b66;
+  --text:      #2e2520;
+  --text-md:   #6b5c54;
+  --text-lt:   #9b8c84;
+  --white:     #ffffff;
+  --r:         10px;
+  --r-sm:      6px;
+  --sh:        0 1px 8px rgba(60,40,30,.08);
+  --sh-md:     0 2px 16px rgba(60,40,30,.11);
+}
+
+html{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;min-height:100vh}
+
+/* ── Layout ───────────────────────────────────────────── */
+.shell{
+  max-width:1080px;margin:0 auto;
+  display:grid;grid-template-columns:1fr;
+  min-height:100vh;
+}
+@media(min-width:740px){
+  .shell{grid-template-columns:1fr 280px;align-items:start}
+}
+
+/* ── Header ───────────────────────────────────────────── */
+.app-head{
+  grid-column:1/-1;
+  padding:1.25rem 1.5rem .9rem;
+  display:flex;align-items:baseline;gap:1rem;
+  border-bottom:1px solid var(--border);
+}
+.app-head h1{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.55rem;font-weight:300;
+  color:var(--earth);letter-spacing:.02em;
+}
+.app-head p{font-size:12px;color:var(--text-lt);font-weight:300;letter-spacing:.05em}
+
+/* ── Preview column ───────────────────────────────────── */
+.preview-col{
+  padding:1.25rem 1rem 1.25rem 1.5rem;
+  display:flex;flex-direction:column;gap:.9rem;
+}
+@media(max-width:739px){.preview-col{padding:1rem}}
+
+/* Upload zone */
+.upload-zone{
+  border:1.5px dashed var(--border-md);
+  border-radius:var(--r);
+  padding:2.5rem 1.5rem;
+  display:flex;flex-direction:column;align-items:center;
+  text-align:center;gap:.6rem;
+  cursor:pointer;
+  background:var(--surface);
+  transition:border-color .18s,background .18s;
+}
+.upload-zone:hover,.upload-zone.dov{border-color:var(--earth-lt);background:rgba(255,255,255,.5)}
+.upload-zone svg{stroke:var(--earth-lt)}
+.upload-zone p{font-size:13px;color:var(--text-md)}
+.upload-zone strong{color:var(--earth);font-weight:500}
+.upload-zone small{font-size:11px;color:var(--text-lt)}
+#fileInput{display:none}
+
+/* Canvas wrap – adapts to artwork proportions */
+.canvas-outer{
+  position:relative;
+  width:100%;
+  background:var(--panel);
+  border-radius:var(--r);
+  overflow:hidden;
+  box-shadow:var(--sh-md);
+  display:none; /* shown after upload */
+}
+/* The canvas itself fills this container */
+.canvas-outer canvas{
+  display:block;
+  width:100%;height:auto;
+  cursor:grab;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.canvas-outer canvas:active{cursor:grabbing}
+
+.canvas-hint{
+  position:absolute;bottom:.75rem;left:50%;transform:translateX(-50%);
+  background:rgba(46,37,32,.65);color:#fff;
+  font-size:11px;padding:3px 11px;border-radius:20px;
+  pointer-events:none;opacity:0;transition:opacity .5s;white-space:nowrap;
+}
+.canvas-hint.show{opacity:1}
+
+/* Format + size info bar */
+.canvas-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 .15rem;
+}
+.canvas-bar span{font-size:11.5px;color:var(--text-lt)}
+.change-btn{
+  background:none;border:none;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:12px;
+  color:var(--earth-lt);text-decoration:underline;padding:0;
+}
+.change-btn:hover{color:var(--earth)}
+
+/* Download button */
+.dl-btn{
+  width:100%;padding:.72rem 1rem;
+  background:var(--earth);color:#fff;
+  border:none;border-radius:var(--r);
+  font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:500;
+  letter-spacing:.05em;cursor:pointer;
+  transition:background .15s,transform .1s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.dl-btn:hover{background:var(--earth-dk)}
+.dl-btn:active{transform:scale(.99)}
+.dl-btn:disabled{opacity:.38;cursor:not-allowed;transform:none}
+.dl-btn svg{width:15px;height:15px;stroke:#fff;flex-shrink:0}
+
+/* ── Controls column ──────────────────────────────────── */
+.ctrl-col{
+  padding:1.25rem 1.5rem 1.25rem .25rem;
+  display:flex;flex-direction:column;gap:.55rem;
+  border-left:1px solid var(--border);
+}
+@media(max-width:739px){
+  .ctrl-col{
+    border-left:none;border-top:1px solid var(--border);
+    padding:1rem;
+  }
+}
+
+/* Accordion section */
+.acc{background:var(--white);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.acc-head{
+  width:100%;display:flex;align-items:center;justify-content:space-between;
+  padding:.65rem .9rem;background:none;border:none;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:10.5px;font-weight:500;
+  text-transform:uppercase;letter-spacing:.1em;color:var(--text-lt);
+  text-align:left;transition:color .15s;
+}
+.acc-head:hover{color:var(--earth)}
+.acc-head .chev{font-size:11px;color:var(--text-lt);transition:transform .2s;line-height:1}
+.acc.open .chev{transform:rotate(180deg)}
+.acc-body{padding:0 .9rem .9rem;display:none}
+.acc.open .acc-body{display:block}
+
+/* Field wrappers */
+.fg{margin-bottom:.7rem}.fg:last-child{margin-bottom:0}
+.fl{display:block;font-size:10px;font-weight:500;color:var(--text-lt);text-transform:uppercase;letter-spacing:.09em;margin-bottom:.3rem}
+
+/* Segmented control */
+.seg{
+  display:flex;background:var(--bg);border:1.5px solid var(--border);
+  border-radius:var(--r-sm);padding:2px;gap:2px;
+}
+.seg-btn{
+  flex:1;padding:4px 4px;border-radius:4px;border:none;background:transparent;
+  font-family:'DM Sans',sans-serif;font-size:11.5px;color:var(--text-lt);
+  cursor:pointer;transition:all .15s;white-space:nowrap;text-align:center;
+  line-height:1.3;
+}
+.seg-btn:hover{color:var(--earth)}
+.seg-btn.active{background:var(--earth);color:#fff;font-weight:500}
+
+/* Toggle row */
+.tog-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:.45rem;
+}
+.tog-row:last-child{margin-bottom:0}
+.tog-label{font-size:12.5px;color:var(--text-md)}
+.tog-label small{display:block;font-size:10.5px;color:var(--text-lt);font-weight:300}
+
+/* Switch */
+.sw{position:relative;width:34px;height:18px;flex-shrink:0}
+.sw input{opacity:0;width:0;height:0}
+.sw-thumb{
+  position:absolute;inset:0;background:var(--border-md);border-radius:9px;
+  cursor:pointer;transition:background .2s;
+}
+.sw-thumb::after{
+  content:'';position:absolute;width:12px;height:12px;border-radius:50%;
+  background:white;top:3px;left:3px;transition:transform .2s;
+}
+.sw input:checked+.sw-thumb{background:var(--earth)}
+.sw input:checked+.sw-thumb::after{transform:translateX(16px)}
+
+/* Text input */
+.ti{
+  width:100%;padding:.42rem .6rem;
+  border:1.5px solid var(--border);border-radius:var(--r-sm);
+  background:var(--bg);font-family:'DM Sans',sans-serif;font-size:13px;
+  color:var(--text);outline:none;transition:border-color .15s;
+}
+.ti:focus{border-color:var(--earth-lt);background:var(--white)}
+.ti::placeholder{color:var(--text-lt)}
+
+/* Range slider */
+.range-row{display:grid;grid-template-columns:auto 1fr 30px;align-items:center;gap:8px;margin-bottom:.45rem}
+.range-row:last-child{margin-bottom:0}
+.range-row .fl{margin-bottom:0;font-size:9.5px}
+input[type=range]{-webkit-appearance:none;height:3px;border-radius:2px;background:var(--border-md);outline:none;cursor:pointer;width:100%}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--earth);border:2px solid white;box-shadow:0 1px 3px rgba(60,40,30,.25)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--earth);border:2px solid white}
+.rv{font-size:11px;color:var(--earth);font-weight:500;text-align:right}
+
+/* Color chip row */
+.chip-row{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.chip{
+  width:26px;height:26px;border-radius:50%;cursor:pointer;flex-shrink:0;
+  border:2px solid transparent;transition:transform .15s,box-shadow .15s;
+}
+.chip:hover{transform:scale(1.1)}
+.chip.active{box-shadow:0 0 0 2px var(--white),0 0 0 4px var(--earth)}
+
+/* Font preview cards */
+.font-pair{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.font-card{
+  background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);
+  padding:6px 5px 5px;cursor:pointer;text-align:center;
+  transition:all .15s;
+}
+.font-card:hover{border-color:var(--earth-lt)}
+.font-card.active{border-color:var(--earth);background:var(--surface)}
+.font-preview{display:block;font-size:20px;color:var(--earth);line-height:1.3;height:26px;overflow:hidden}
+.font-name{display:block;font-size:9px;color:var(--text-lt);margin-top:2px;font-family:'DM Sans',sans-serif}
+
+/* Section divider line */
+.divline{height:1px;background:var(--border);margin:.6rem 0}
+
+/* Disabled overlay for sections */
+.acc-body.locked{opacity:.4;pointer-events:none}
+
+/* Inline icon */
+.ico{display:inline-block;vertical-align:middle;margin-right:4px}
+
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <header class="app-head">
+    <h1>Artwork Version Planner</h1>
+    <p>Prepare · Crop · Credit · Download</p>
+  </header>
+
+  <!-- ── Preview column ─────────────────────────────── -->
+  <section class="preview-col">
+
+    <!-- Upload zone (shown before image) -->
+    <div class="upload-zone" id="uploadZone">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+      <p><strong>Drop your artwork here</strong><br>or click to browse</p>
+      <small>JPG · PNG · WEBP · GIF</small>
+    </div>
+    <input type="file" id="fileInput" accept="image/*">
+
+    <!-- Canvas (shown after upload) -->
+    <div class="canvas-outer" id="canvasOuter">
+      <canvas id="cv"></canvas>
+      <div class="canvas-hint" id="canvasHint">Drag to adjust crop</div>
+    </div>
+
+    <div class="canvas-bar">
+      <span id="canvasLabel"></span>
+      <button class="change-btn" id="changeBtn">Change image</button>
+    </div>
+
+    <!-- Download -->
+    <button class="dl-btn" id="dlBtn" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Download this version
+    </button>
+
+  </section>
+
+  <!-- ── Controls column ────────────────────────────── -->
+  <aside class="ctrl-col">
+
+    <!-- FORMAT -->
+    <div class="acc open" id="acc-fmt">
+      <button class="acc-head" data-body="body-fmt">
+        <span>Format</span><span class="chev">▾</span>
+      </button>
+      <div class="acc-body" id="body-fmt">
+        <div class="seg" id="fmtSeg">
+          <button class="seg-btn active" data-fmt="original">Original</button>
+          <button class="seg-btn" data-fmt="instagram">Instagram</button>
+          <button class="seg-btn" data-fmt="pinterest">Pinterest</button>
+          <button class="seg-btn" data-fmt="landscape">Landscape</button>
+        </div>
+        <p style="font-size:10.5px;color:var(--text-lt);margin-top:.45rem;line-height:1.5" id="fmtDesc">
+          Original proportions — no cropping applied.
+        </p>
+      </div>
+    </div>
+
+    <!-- BORDER -->
+    <div class="acc open" id="acc-border">
+      <button class="acc-head" data-body="body-border">
+        <span>Border</span><span class="chev">▾</span>
+      </button>
+      <div class="acc-body" id="body-border">
+
+        <div class="tog-row" style="margin-bottom:.6rem">
+          <span class="tog-label">Add border
+            <small>Outside the artwork</small>
+          </span>
+          <label class="sw"><input type="checkbox" id="borderOn"><span class="sw-thumb"></span></label>
+        </div>
+
+        <div id="borderOpts" class="locked">
+          <div class="fg">
+            <label class="fl">Thickness</label>
+            <div class="seg" id="borderThickSeg">
+              <button class="seg-btn active" data-thick="thin">Thin</button>
+              <button class="seg-btn" data-thick="medium">Medium</button>
+              <button class="seg-btn" data-thick="thick">Thick</button>
+            </div>
+          </div>
+          <div class="fg">
+            <label class="fl">Colour</label>
+            <div class="chip-row">
+              <div class="chip active" data-bc="#ffffff" style="background:#fff;border-color:#ddd" title="White"></div>
+              <div class="chip" data-bc="#1a1a1a" style="background:#1a1a1a" title="Black"></div>
+              <div class="chip" data-bc="#f2ece3" style="background:#f2ece3;border-color:#ddd" title="Warm white"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTIST CREDIT -->
+    <div class="acc open" id="acc-credit">
+      <button class="acc-head" data-body="body-credit">
+        <span>Artist Credit</span><span class="chev">▾</span>
+      </button>
+      <div class="acc-body" id="body-credit">
+
+        <div class="tog-row" style="margin-bottom:.6rem">
+          <span class="tog-label">Show credit
+            <small>Inside artwork, bottom</small>
+          </span>
+          <label class="sw"><input type="checkbox" id="creditOn"><span class="sw-thumb"></span></label>
+        </div>
+
+        <div id="creditOpts" class="locked">
+          <div class="fg">
+            <label class="fl" for="creditName">Name</label>
+            <input type="text" id="creditName" class="ti" placeholder="Your name" autocomplete="off">
+          </div>
+          <div class="fg">
+            <label class="fl" for="creditUrl">Website <span style="text-transform:none;letter-spacing:0;font-weight:300">(optional)</span></label>
+            <input type="text" id="creditUrl" class="ti" placeholder="yoursite.com" autocomplete="off">
+          </div>
+          <div class="fg">
+            <label class="fl">Font style</label>
+            <div class="font-pair">
+              <div class="font-card active" data-font="script">
+                <span class="font-preview" style="font-family:'Dancing Script',cursive">Aa</span>
+                <span class="font-name">Script</span>
+              </div>
+              <div class="font-card" data-font="clean">
+                <span class="font-preview" style="font-family:'DM Sans',sans-serif;font-size:15px">Aa</span>
+                <span class="font-name">Clean</span>
+              </div>
+            </div>
+          </div>
+          <div class="fg">
+            <div class="tog-row" style="margin-bottom:0">
+              <span class="tog-label" style="font-size:12px">Extra letter spacing</span>
+              <label class="sw"><input type="checkbox" id="spacingOn"><span class="sw-thumb"></span></label>
+            </div>
+          </div>
+          <div class="fg">
+            <div class="range-row">
+              <label class="fl">Size</label>
+              <input type="range" id="creditSize" min="12" max="72" value="28" step="2">
+              <span class="rv" id="creditSizeV">28</span>
+            </div>
+            <div class="range-row">
+              <label class="fl">Opacity</label>
+              <input type="range" id="creditOp" min="30" max="100" value="85" step="5">
+              <span class="rv" id="creditOpV">85%</span>
+            </div>
+          </div>
+          <div class="fg">
+            <label class="fl">Credit colour</label>
+            <div class="chip-row">
+              <div class="chip active" data-cc="#ffffff" style="background:#fff;border-color:#ddd" title="White"></div>
+              <div class="chip" data-cc="#1a1a1a" style="background:#1a1a1a" title="Black"></div>
+              <div class="chip" data-cc="#d4af6a" style="background:#d4af6a" title="Gold"></div>
+              <div class="chip" data-cc="#c8b9a5" style="background:#c8b9a5;border-color:#ddd" title="Sand"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- EXPORT SIZE -->
+    <div class="acc open" id="acc-size">
+      <button class="acc-head" data-body="body-size">
+        <span>Export Size</span><span class="chev">▾</span>
+      </button>
+      <div class="acc-body" id="body-size">
+        <div class="seg" id="sizeSeg">
+          <button class="seg-btn active" data-sz="1000">1000 px</button>
+          <button class="seg-btn" data-sz="1500">1500 px</button>
+          <button class="seg-btn" data-sz="2000">2000 px</button>
+        </div>
+        <p style="font-size:10.5px;color:var(--text-lt);margin-top:.45rem;line-height:1.5">
+          Long side of the exported image.
+        </p>
+      </div>
+    </div>
+
+  </aside>
+
+</div><!-- shell -->
+
+<script>
+'use strict';
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const FORMATS = {
+  original:  {label:'Original',               ratio:null,     desc:'Original proportions — no cropping applied.'},
+  instagram: {label:'Instagram Square',        ratio:1/1,      desc:'Square 1:1 — fits Instagram grid perfectly.'},
+  pinterest: {label:'Pinterest Portrait',      ratio:2/3,      desc:'Portrait 2:3 — ideal for Pinterest pins.'},
+  landscape: {label:'Facebook / LinkedIn / X', ratio:1.91/1,   desc:'Landscape 1.91:1 — standard social feed post.'},
+};
+
+const BORDER_THICK = {thin:20, medium:50, thick:100};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+const S = {
+  fmt:          'original',
+  borderOn:     false,
+  borderThick:  'thin',
+  borderColor:  '#ffffff',
+  creditOn:     false,
+  creditName:   '',
+  creditUrl:    '',
+  creditFont:   'script',
+  creditSize:   28,
+  creditOp:     85,
+  creditColor:  '#ffffff',
+  extraSpacing: false,
+  exportSize:   1000,
+  // crop offsets per format (in image-space pixels)
+  offsets: {original:{x:0,y:0}, instagram:{x:0,y:0}, pinterest:{x:0,y:0}, landscape:{x:0,y:0}},
+};
+
+let IMG   = null;   // HTMLImageElement
+let pScale = 1;     // canvas-px per export-px
+let drag  = false;
+let dragLast = {x:0, y:0};
+let hintTimer = null;
+
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+
+// ── Geometry helpers ──────────────────────────────────────────────────────────
+
+// Returns {aw, ah} — the artwork area (inside any border) in export-space pixels
+function artworkSize() {
+  if (!IMG) return {aw:800, ah:600};
+  const ratio = FORMATS[S.fmt].ratio;
+  const bpx   = S.borderOn ? BORDER_THICK[S.borderThick] : 0;
+
+  // Total canvas export dims
+  let cw, ch;
+  if (ratio === null) {
+    // Original: artwork fills canvas, border is added around it
+    const iR = IMG.width / IMG.height;
+    if (iR >= 1) { cw = S.exportSize; ch = Math.round(S.exportSize / iR); }
+    else          { ch = S.exportSize; cw = Math.round(S.exportSize * iR); }
+  } else {
+    // Cropped format: canvas has the target ratio, long side = exportSize
+    if (ratio >= 1) { cw = S.exportSize; ch = Math.round(S.exportSize / ratio); }
+    else             { ch = S.exportSize; cw = Math.round(S.exportSize * ratio); }
+  }
+
+  return { cw, ch, aw: cw - bpx*2, ah: ch - bpx*2, bpx };
+}
+
+// Given artwork area {aw,ah}, return {iw,ih,ix,iy} — how to draw IMG into it,
+// cropped/fitted with current offset (all in export-space pixels).
+function imgDrawParams(aw, ah, offsetX, offsetY) {
+  if (!IMG) return null;
+  const iR = IMG.width / IMG.height;
+  const aR = aw / ah;
+
+  let iw, ih;
+  if (iR > aR) {
+    // image wider than target — fit height, crop sides
+    ih = ah; iw = ih * iR;
+  } else {
+    // image taller than target — fit width, crop top/bottom
+    iw = aw; ih = iw / iR;
+  }
+
+  // Centre, then apply offset (clamped so artwork always covers target)
+  let ix = (aw - iw) / 2 + offsetX;
+  let iy = (ah - ih) / 2 + offsetY;
+
+  // Clamp
+  if (iw >= aw) { ix = Math.max(aw - iw, Math.min(0, ix)); }
+  else           { ix = Math.max(0, Math.min(aw - iw, ix)); }
+  if (ih >= ah) { iy = Math.max(ah - ih, Math.min(0, iy)); }
+  else           { iy = Math.max(0, Math.min(ah - ih, iy)); }
+
+  return {iw, ih, ix, iy};
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+function renderTo(targetCanvas, scale) {
+  const {cw, ch, aw, ah, bpx} = artworkSize();
+  const W = Math.round(cw * scale);
+  const H = Math.round(ch * scale);
+  targetCanvas.width  = W;
+  targetCanvas.height = H;
+  const x = targetCanvas.getContext('2d');
+  x.clearRect(0, 0, W, H);
+
+  const s = scale;
+  const off = S.offsets[S.fmt];
+
+  // Border background
+  if (S.borderOn && bpx > 0) {
+    x.fillStyle = S.borderColor;
+    x.fillRect(0, 0, W, H);
+  }
+
+  // Artwork area origin
+  const ox = bpx * s, oy = bpx * s;
+  const awS = aw * s, ahS = ah * s;
+
+  if (!IMG) {
+    x.fillStyle = '#e8e2d8';
+    x.fillRect(ox, oy, awS, ahS);
+    x.fillStyle = 'rgba(155,140,130,.4)';
+    x.font = `300 ${Math.round(W*.025)}px 'DM Sans',sans-serif`;
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText('Upload artwork to preview', ox + awS/2, oy + ahS/2);
+    return;
+  }
+
+  // Clip to artwork area
+  x.save();
+  x.beginPath();
+  x.rect(ox, oy, awS, ahS);
+  x.clip();
+
+  const dp = imgDrawParams(aw, ah, off.x, off.y);
+  if (dp) {
+    x.drawImage(IMG, ox + dp.ix*s, oy + dp.iy*s, dp.iw*s, dp.ih*s);
+  }
+  x.restore();
+
+  // Artist credit (inside artwork area, bottom)
+  if (S.creditOn && (S.creditName || S.creditUrl)) {
+    drawCredit(x, ox, oy, awS, ahS, s);
+  }
+}
+
+function drawCredit(x, ox, oy, aw, ah, s) {
+  const isScript = S.creditFont === 'script';
+  const ff = isScript ? "'Dancing Script',cursive" : "'DM Sans',sans-serif";
+  const sz  = S.creditSize * s;
+  const pad = 18 * s;
+  const spacing = S.extraSpacing ? sz * 0.12 : 0;
+
+  const lines = [];
+  if (S.creditName) lines.push(S.creditName);
+  if (S.creditUrl)  lines.push(S.creditUrl);
+
+  x.save();
+  x.beginPath(); x.rect(ox, oy, aw, ah); x.clip();
+  x.globalAlpha = S.creditOp / 100;
+  x.font = `${isScript ? '400' : '300'} ${sz}px ${ff}`;
+  x.textAlign = 'right';
+  x.textBaseline = 'alphabetic';
+  try { x.letterSpacing = spacing + 'px'; } catch(e){}
+
+  const lineH = sz * 1.45;
+  const totalH = lineH * (lines.length - 1) + sz;
+  let cy = oy + ah - pad;
+
+  // Subtle shadow for legibility
+  x.shadowColor = 'rgba(0,0,0,.3)';
+  x.shadowBlur  = 4 * s;
+  x.shadowOffsetX = x.shadowOffsetY = s;
+
+  x.fillStyle = S.creditColor;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    x.fillText(lines[i], ox + aw - pad, cy);
+    cy -= lineH;
+  }
+  x.restore();
+}
+
+// ── Canvas sizing + render ─────────────────────────────────────────────────────
+
+function updateCanvas() {
+  const outer = document.getElementById('canvasOuter');
+  const maxW  = outer.parentElement.clientWidth - 32; // preview-col padding
+  const {cw, ch} = artworkSize();
+  const ratio = cw / ch;
+
+  // Natural scale that fits available width; cap height on very tall images
+  const maxH = Math.min(window.innerHeight * 0.82, 820);
+  let W;
+  if (maxW / ratio <= maxH) W = maxW;
+  else W = Math.round(maxH * ratio);
+  W = Math.max(W, 80);
+
+  pScale = W / cw;
+  renderTo(cv, pScale);
+  cv.style.width  = cv.width  + 'px';
+  cv.style.height = cv.height + 'px';
+  updateLabel();
+}
+
+function render() { updateCanvas(); }
+
+function updateLabel() {
+  const {cw, ch} = artworkSize();
+  const f = FORMATS[S.fmt];
+  document.getElementById('canvasLabel').textContent =
+    `${f.label} · ${cw} × ${ch} px (at ${S.exportSize}px)`;
+}
+
+// ── Drag to adjust crop ───────────────────────────────────────────────────────
+
+function initDrag() {
+  let firstDrag = true;
+
+  const start = (px, py) => {
+    if (!IMG || S.fmt === 'original') return;
+    drag = true; dragLast = {x:px, y:py};
+  };
+  const move = (px, py) => {
+    if (!drag) return;
+    const dx = (px - dragLast.x) / pScale;
+    const dy = (py - dragLast.y) / pScale;
+    dragLast = {x:px, y:py};
+    S.offsets[S.fmt].x += dx;
+    S.offsets[S.fmt].y += dy;
+    render();
+    if (firstDrag) {
+      firstDrag = false;
+      const h = document.getElementById('canvasHint');
+      h.classList.remove('show');
+    }
+  };
+  const end = () => { drag = false; };
+
+  cv.addEventListener('mousedown', e => start(e.offsetX, e.offsetY));
+  window.addEventListener('mousemove', e => {
+    if (!drag) return;
+    const r = cv.getBoundingClientRect();
+    move(e.clientX - r.left, e.clientY - r.top);
+  });
+  window.addEventListener('mouseup', end);
+
+  cv.addEventListener('touchstart', e => {
+    const t = e.touches[0], r = cv.getBoundingClientRect();
+    start(t.clientX - r.left, t.clientY - r.top);
+    e.preventDefault();
+  }, {passive:false});
+  cv.addEventListener('touchmove', e => {
+    const t = e.touches[0], r = cv.getBoundingClientRect();
+    move(t.clientX - r.left, t.clientY - r.top);
+    e.preventDefault();
+  }, {passive:false});
+  cv.addEventListener('touchend', end);
+}
+
+// ── Upload ────────────────────────────────────────────────────────────────────
+
+function loadFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  if (!reader) return;
+  reader.onload = e => {
+    if (!e?.target?.result) return;
+    const img = new Image();
+    img.onload = () => {
+      IMG = img;
+      // Reset all crop offsets
+      Object.keys(S.offsets).forEach(k => S.offsets[k] = {x:0, y:0});
+      // Show canvas, hide upload zone
+      document.getElementById('uploadZone').classList.add('hidden');
+      document.getElementById('canvasOuter').style.display = 'block';
+      document.getElementById('dlBtn').disabled = false;
+      // Show drag hint briefly for non-original formats
+      if (S.fmt !== 'original') {
+        const h = document.getElementById('canvasHint');
+        h.classList.add('show');
+        clearTimeout(hintTimer);
+        hintTimer = setTimeout(() => h.classList.remove('show'), 3000);
+      }
+      render();
+    };
+    img.onerror = () => alert('Could not load image. Please try another file.');
+    img.src = e.target.result;
+  };
+  reader.onerror = () => alert('Could not read file. Please try again.');
+  reader.readAsDataURL(file);
+}
+
+// ── Download ─────────────────────────────────────────────────────────────────
+
+async function download() {
+  await document.fonts.ready;
+  try { await Promise.all([
+    document.fonts.load("400 64px 'Dancing Script'"),
+    document.fonts.load("300 64px 'DM Sans'"),
+  ]); } catch(e){}
+
+  const off = document.createElement('canvas');
+  renderTo(off, 1); // export at 1:1 scale (already export-space)
+
+  const mime = 'image/png';
+  const blob = await new Promise(r => off.toBlob(r, mime));
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const name = (S.creditName || 'artwork').replace(/\s+/g,'-').toLowerCase();
+  a.download = `${name}-${S.fmt}-${S.exportSize}px.png`;
+  a.href = url; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Events ────────────────────────────────────────────────────────────────────
+
+function initEvents() {
+  const g = id => document.getElementById(id);
+
+  // Upload
+  g('uploadZone').addEventListener('click', () => g('fileInput').click());
+  g('changeBtn').addEventListener('click', () => g('fileInput').click());
+  g('fileInput').addEventListener('change', function() {
+    if (this.files?.[0]) { loadFile(this.files[0]); this.value = ''; }
+  });
+  g('uploadZone').addEventListener('dragover', e => { e.preventDefault(); g('uploadZone').classList.add('dov'); });
+  g('uploadZone').addEventListener('dragleave', () => g('uploadZone').classList.remove('dov'));
+  g('uploadZone').addEventListener('drop', e => {
+    e.preventDefault(); g('uploadZone').classList.remove('dov');
+    if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+  });
+
+  // Format segmented control
+  g('fmtSeg').querySelectorAll('.seg-btn').forEach(b => {
+    b.addEventListener('click', function() {
+      S.fmt = this.dataset.fmt;
+      g('fmtSeg').querySelectorAll('.seg-btn').forEach(x => x.classList.toggle('active', x.dataset.fmt === S.fmt));
+      g('fmtDesc').textContent = FORMATS[S.fmt].desc;
+      // Show/hide drag hint for crop formats
+      if (IMG && S.fmt !== 'original') {
+        const h = g('canvasHint'); h.classList.add('show');
+        clearTimeout(hintTimer); hintTimer = setTimeout(() => h.classList.remove('show'), 2500);
+      }
+      render();
+    });
+  });
+
+  // Border toggle
+  g('borderOn').addEventListener('change', function() {
+    S.borderOn = this.checked;
+    g('borderOpts').classList.toggle('locked', !this.checked);
+    render();
+  });
+
+  // Border thickness
+  g('borderThickSeg').querySelectorAll('.seg-btn').forEach(b => {
+    b.addEventListener('click', function() {
+      S.borderThick = this.dataset.thick;
+      g('borderThickSeg').querySelectorAll('.seg-btn').forEach(x => x.classList.toggle('active', x.dataset.thick === S.borderThick));
+      render();
+    });
+  });
+
+  // Border colour chips
+  document.querySelectorAll('[data-bc]').forEach(c => {
+    c.addEventListener('click', function() {
+      S.borderColor = this.dataset.bc;
+      document.querySelectorAll('[data-bc]').forEach(x => x.classList.toggle('active', x.dataset.bc === S.borderColor));
+      render();
+    });
+  });
+
+  // Credit toggle
+  g('creditOn').addEventListener('change', function() {
+    S.creditOn = this.checked;
+    g('creditOpts').classList.toggle('locked', !this.checked);
+    render();
+  });
+
+  // Credit inputs
+  g('creditName').addEventListener('input', function() { S.creditName = this.value; render(); });
+  g('creditUrl').addEventListener('input',  function() { S.creditUrl  = this.value; render(); });
+
+  // Credit font cards
+  document.querySelectorAll('[data-font]').forEach(c => {
+    c.addEventListener('click', function() {
+      S.creditFont = this.dataset.font;
+      document.querySelectorAll('[data-font]').forEach(x => x.classList.toggle('active', x.dataset.font === S.creditFont));
+      render();
+    });
+  });
+
+  // Letter spacing toggle
+  g('spacingOn').addEventListener('change', function() { S.extraSpacing = this.checked; render(); });
+
+  // Credit size & opacity sliders
+  g('creditSize').addEventListener('input', function() {
+    S.creditSize = +this.value; g('creditSizeV').textContent = this.value; render();
+  });
+  g('creditOp').addEventListener('input', function() {
+    S.creditOp = +this.value; g('creditOpV').textContent = this.value + '%'; render();
+  });
+
+  // Credit colour chips
+  document.querySelectorAll('[data-cc]').forEach(c => {
+    c.addEventListener('click', function() {
+      S.creditColor = this.dataset.cc;
+      document.querySelectorAll('[data-cc]').forEach(x => x.classList.toggle('active', x.dataset.cc === S.creditColor));
+      render();
+    });
+  });
+
+  // Export size segmented control
+  g('sizeSeg').querySelectorAll('.seg-btn').forEach(b => {
+    b.addEventListener('click', function() {
+      S.exportSize = +this.dataset.sz;
+      g('sizeSeg').querySelectorAll('.seg-btn').forEach(x => x.classList.toggle('active', x.dataset.sz === String(S.exportSize)));
+      render();
+    });
+  });
+
+  // Download
+  g('dlBtn').addEventListener('click', download);
+
+  // Accordion
+  document.querySelectorAll('.acc-head[data-body]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const body = g(this.dataset.body);
+      const acc  = this.closest('.acc');
+      const open = acc.classList.toggle('open');
+      body.style.display = open ? 'block' : 'none';
+    });
+  });
+
+  // Resize
+  window.addEventListener('resize', () => {
+    clearTimeout(window._rt);
+    window._rt = setTimeout(() => { if (IMG) render(); }, 140);
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+async function init() {
+  // Open all accordions by default
+  document.querySelectorAll('.acc.open .acc-body').forEach(b => b.style.display = 'block');
+
+  initDrag();
+  initEvents();
+
+  await document.fonts.ready;
+  render(); // show placeholder
+}
+
+init();
+</script>
+</body>
+</html>
