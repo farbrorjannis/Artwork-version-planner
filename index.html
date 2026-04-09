@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Artwork Version Planner</title>
+
+<style>
+/* =====================
+   COLOR PALETTE & BASE
+   ===================== */
+:root {
+  --bg-page: #f7f3ea;
+  --bg-card: #efefec;
+  --bg-panel: #e6e6e4;
+
+  --primary-brown: #5b4a3a;
+  --secondary-gray: #d8d4cd;
+
+  --border-light: #d2d2cf;
+
+  --text-main: #2f2f2f;
+  --text-muted: #6f6f6b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 40px 16px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-page);
+  color: var(--text-main);
+}
+
+/* =====================
+   LAYOUT
+   ===================== */
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.card {
+  background: var(--bg-card);
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.7rem;
+}
+
+header p {
+  margin: 6px 0 24px;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* =====================
+   SECTIONS
+   ===================== */
+.section {
+  background: var(--bg-panel);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.section h2 {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+label.option {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+label.option input {
+  margin-right: 6px;
+}
+
+/* =====================
+   INPUTS
+   ===================== */
+input[type="text"] {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  font-size: 0.9rem;
+  margin-top: 6px;
+}
+
+/* =====================
+   BUTTONS
+   ===================== */
+.actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--primary-brown);
+  color: #fff;
+}
+
+button.secondary {
+  background: var(--secondary-gray);
+  color: var(--text-main);
+}
+
+/* =====================
+   OUTPUT
+   ===================== */
+.output {
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px dashed var(--border-light);
+}
+
+.output pre {
+  white-space: pre-wrap;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <div class="card">
+
+    <header>
+      <h1>Artwork Version Planner</h1>
+      <p>Plan artwork borders, credits & formats for web and social media</p>
+    </header>
+
+    <!-- ARTWORK TYPE -->
+    <div class="section">
+      <h2>Artwork Type</h2>
+      <div class="options">
+        <label class="option"><input type="radio" name="type" value="Watercolor">Watercolor</label>
+        <label class="option"><input type="radio" name="type" value="Oil painting">Oil painting</label>
+        <label class="option"><input type="radio" name="type" value="Acrylic painting">Acrylic painting</label>
+        <label class="option"><input type="radio" name="type" value="Ink / wash">Ink / wash</label>
+        <label class="option"><input type="radio" name="type" value="Graphic / illustration">Graphic / illustration</label>
+        <label class="option"><input type="radio" name="type" value="Photography">Photography</label>
+      </div>
+    </div>
+
+    <!-- FORMATS -->
+    <div class="section">
+      <h2>Target Formats</h2>
+      <div class="options">
+        <label class="option"><input type="checkbox" value="Original format (uncropped)">Original (uncropped)</label>
+        <label class="option"><input type="checkbox" value="Instagram">Instagram</label>
+        <label class="option"><input type="checkbox" value="Pinterest">Pinterest</label>
+        <label class="option"><input type="checkbox" value="Facebook">Facebook</label>
+        <label class="option"><input type="checkbox" value="LinkedIn">LinkedIn</label>
+        <label class="option"><input type="checkbox" value="X / Twitter">X (Twitter)</label>
+      </div>
+    </div>
+
+    <!-- BORDER -->
+    <div class="section">
+      <h2>Border</h2>
+      <div class="options">
+        <label class="option"><input type="radio" name="border" value="No border">No border</label>
+        <label class="option"><input type="radio" name="border" value="Thin border">Thin</label>
+        <label class="option"><input type="radio" name="border" value="Medium border">Medium</label>
+        <label class="option"><input type="radio" name="border" value="Thick border">Thick</label>
+      </div>
+      <div class="options" style="margin-top:10px;">
+        <label class="option"><input type="radio" name="borderColor" value="White border">White</label>
+        <label class="option"><input type="radio" name="borderColor" value="Black border">Black</label>
+      </div>
+    </div>
+
+    <!-- CREDITS -->
+    <div class="section">
+      <h2>Artwork Credit</h2>
+      <label class="option">
+        <input type="checkbox" id="creditToggle">Add artist name / website
+      </label>
+      <input type="text" id="creditText" placeholder="Artist name or website" disabled>
+      <div class="options" style="margin-top:10px;">
+        <label class="option"><input type="radio" name="font" value="Script style">Script style</label>
+        <label class="option"><input type="radio" name="font" value="Regular style">Regular style</label>
+        <label class="option"><input type="checkbox" value="Extra letter spacing" id="spacing">Extra letter spacing</label>
+      </div>
+    </div>
+
+    <!-- EXPORT SIZE -->
+    <div class="section">
+      <h2>Export Size (long side)</h2>
+      <div class="options">
+        <label class="option"><input type="radio" name="size" value="1000 px">1000 px</label>
+        <label class="option"><input type="radio" name="size" value="1500 px">1500 px</label>
+        <label class="option"><input type="radio" name="size" value="2000 px">2000 px</label>
+      </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="actions">
+      <button class="primary" onclick="generatePlan()">Generate Version Plan</button>
+      <button class="secondary" onclick="resetPlanner()">Reset</button>
+    </div>
+
+    <div class="output" id="output" style="display:none;">
+      <pre id="outputText"></pre>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* =====================
+   LOGIC
+   ===================== */
+
+const creditToggle = document.getElementById("creditToggle");
+const creditText = document.getElementById("creditText");
+
+creditToggle.addEventListener("change", () => {
+  creditText.disabled = !creditToggle.checked;
+});
+
+function getValue(selector) {
+  const el = document.querySelector(selector + ":checked");
+  return el ? el.value : "Not selected";
+}
+
+function getValues(selector) {
+  return Array.from(document.querySelectorAll(selector + ":checked")).map(i => i.value);
+}
+
+function generatePlan() {
+  const plan = {
+    artworkType: getValue("input[name='type']"),
+    formats: getValues("input[type='checkbox']"),
+    border: getValue("input[name='border']"),
+    borderColor: getValue("input[name='borderColor']"),
+    credit: creditToggle.checked ? creditText.value : "No credit added",
+    font: getValue("input[name='font']"),
+    spacing: document.getElementById("spacing").checked ? "Extra spacing" : "Normal spacing",
+    size: getValue("input[name='size']")
+  };
+
+  const text = `
+ARTWORK VERSION PLAN
+
+Artwork type:
+- ${plan.artworkType}
+
+Target formats:
+${plan.formats.map(f => "- " + f).join("\n")}
+
+Border:
+- ${plan.border}
+- ${plan.borderColor}
+
+Artwork credit:
+- ${plan.credit}
+- ${plan.font}
+- ${plan.spacing}
+
+Export size:
+- Long side: ${plan.size}
+
+Notes:
+- Credit is placed at the bottom of the artwork
+- Credit is never placed on the border
+- Original format remains uncropped
+`;
+
+  document.getElementById("outputText").textContent = text.trim();
+  document.getElementById("output").style.display = "block";
+}
+
+function resetPlanner() {
+  document.querySelectorAll("input").forEach(i => i.checked = false);
+  creditText.value = "";
+  creditText.disabled = true;
+  document.getElementById("output").style.display = "none";
+}
+</script>
+
+</body>
+</html>
