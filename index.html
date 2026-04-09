@@ -2,26 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <title>Artwork Version Planner</title>
 
 <style>
-/* =====================
-   COLOR PALETTE
-   ===================== */
 :root {
   --bg-page: #f7f3ea;
   --bg-card: #efefec;
   --bg-panel: #e6e6e4;
-
   --primary-brown: #5b4a3a;
-  --secondary-gray: #d8d4cd;
-
   --text-main: #2f2f2f;
   --text-muted: #6f6f6b;
-
-  --border-light: #cfcfca;
 }
 
 * {
@@ -31,16 +23,13 @@
 body {
   margin: 0;
   padding: 16px;
-  font-family: system-ui, -apple-system, sans-serif;
   background: var(--bg-page);
+  font-family: system-ui, -apple-system, sans-serif;
   color: var(--text-main);
 }
 
-/* =====================
-   LAYOUT
-   ===================== */
 .card {
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
   background: var(--bg-card);
   border-radius: 18px;
@@ -53,19 +42,15 @@ header h1 {
 }
 
 header p {
-  margin: 4px 0 12px;
+  margin: 6px 0 12px;
   font-size: 0.9rem;
   color: var(--text-muted);
 }
 
-/* =====================
-   UPLOAD
-   ===================== */
+/* Upload */
 .upload {
-  background: var(--bg-panel);
-  border-radius: 14px;
-  padding: 20px;
   text-align: center;
+  margin-bottom: 12px;
 }
 
 .upload input {
@@ -74,103 +59,36 @@ header p {
 
 .upload label {
   display: inline-block;
+  padding: 10px 18px;
   background: var(--primary-brown);
   color: white;
-  padding: 12px 20px;
   border-radius: 999px;
   font-size: 0.9rem;
   cursor: pointer;
 }
 
-/* =====================
-   PREVIEW
-   ===================== */
-.preview-wrapper {
-  margin-top: 12px;
-}
-
-canvas {
+/* Preview container */
+.preview-container {
   width: 100%;
-  max-height: 60vh;
-  background: #ddd;
-  border-radius: 12px;
+  background: white;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  display: none; /* shown after upload */
 }
 
-/* =====================
-   CONTROLS
-   ===================== */
-.controls {
-  margin-top: 14px;
+/* Canvas fills container */
+.preview-container canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
-details {
-  background: var(--bg-panel);
-  border-radius: 12px;
-  padding: 10px;
-  margin-bottom: 8px;
-}
-
-summary {
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* =====================
-   INPUTS
-   ===================== */
-.toggle-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-
-.toggle-row label {
-  background: var(--bg-card);
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--border-light);
+/* Controls (placeholder for next steps) */
+.note {
   font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.toggle-row input {
-  margin-right: 6px;
-}
-
-input[type="text"] {
-  width: 100%;
-  margin-top: 6px;
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid var(--border-light);
-}
-
-/* =====================
-   ACTIONS
-   ===================== */
-.actions {
-  margin-top: 12px;
-  display: flex;
-  gap: 10px;
-}
-
-button {
-  flex: 1;
-  padding: 12px;
-  border-radius: 999px;
-  border: none;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.primary {
-  background: var(--primary-brown);
-  color: #fff;
-}
-
-.secondary {
-  background: var(--secondary-gray);
+  color: var(--text-muted);
+  text-align: center;
 }
 </style>
 </head>
@@ -178,146 +96,68 @@ button {
 <body>
 
 <div class="card">
-<header>
-  <h1>Artwork Version Planner</h1>
-  <p>Plan and export artwork formats for web and social media</p>
-</header>
+  <header>
+    <h1>Artwork Version Planner</h1>
+    <p>Preview artwork with correct proportions for web and social media</p>
+  </header>
 
-<!-- UPLOAD -->
-<div class="upload">
-  <label>
-    Upload artwork
-    <input type="file" accept="image/*" id="upload">
-  </label>
-</div>
+  <div class="upload">
+    <label>
+      Upload artwork
+      <input type="file" id="upload" accept="image/*" />
+    </label>
+  </div>
 
-<!-- PREVIEW -->
-<div class="preview-wrapper">
-  <canvas id="canvas"></canvas>
-</div>
+  <!-- PREVIEW -->
+  <div id="preview" class="preview-container">
+    <canvas id="canvas"></canvas>
+  </div>
 
-<!-- CONTROLS -->
-<div class="controls">
-
-<details open>
-<summary>Format</summary>
-<div class="toggle-row">
-  <label><input type="radio" name="format" value="original" checked>Original</label>
-  <label><input type="radio" name="format" value="square">Instagram</label>
-  <label><input type="radio" name="format" value="portrait">Pinterest</label>
-  <label><input type="radio" name="format" value="landscape">Facebook / LinkedIn / X</label>
-</div>
-</details>
-
-<details>
-<summary>Border</summary>
-<div class="toggle-row">
-  <label><input type="checkbox" id="borderToggle">Add border</label>
-</div>
-<div class="toggle-row">
-  <label><input type="radio" name="borderSize" value="10">Thin</label>
-  <label><input type="radio" name="borderSize" value="25">Medium</label>
-  <label><input type="radio" name="borderSize" value="50">Thick</label>
-</div>
-<div class="toggle-row">
-  <label><input type="radio" name="borderColor" value="white">White</label>
-  <label><input type="radio" name="borderColor" value="black">Black</label>
-</div>
-</details>
-
-<details>
-<summary>Artist Credit</summary>
-<div class="toggle-row">
-  <label><input type="checkbox" id="creditToggle">Add credit</label>
-</div>
-<input type="text" id="creditText" placeholder="Artist name or website" disabled>
-<div class="toggle-row">
-  <label><input type="radio" name="font" value="script">Script</label>
-  <label><input type="radio" name="font" value="regular">Regular</label>
-  <label><input type="checkbox" id="spacing">Extra spacing</label>
-</div>
-</details>
-
-<details>
-<summary>Export size</summary>
-<div class="toggle-row">
-  <label><input type="radio" name="size" value="1000" checked>1000 px</label>
-  <label><input type="radio" name="size" value="1500">1500 px</label>
-  <label><input type="radio" name="size" value="2000">2000 px</label>
-</div>
-</details>
-
-</div>
-
-<!-- ACTIONS -->
-<div class="actions">
-  <button class="primary" id="download">Download current version</button>
-  <button class="secondary" id="reset">Reset</button>
-</div>
-
+  <p class="note">
+    The preview area adapts to the artwork’s original proportions.
+  </p>
 </div>
 
 <script>
-/* =====================
-   LOGIC (MVP)
-   ===================== */
-
-const upload = document.getElementById("upload");
+const uploadInput = document.getElementById("upload");
+const preview = document.getElementById("preview");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-let img = new Image();
+let image = new Image();
 
-upload.addEventListener("change", (e) => {
+uploadInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  img.onload = draw;
-  img.src = URL.createObjectURL(file);
+
+  image.onload = () => {
+    applyAspectRatio(image.width, image.height);
+    drawImageScaled();
+  };
+
+  image.src = URL.createObjectURL(file);
 });
 
-document.querySelectorAll("input").forEach(i =>
-  i.addEventListener("change", draw)
-);
+function applyAspectRatio(width, height) {
+  const ratio = width / height;
 
-document.getElementById("creditToggle").addEventListener("change", e => {
-  document.getElementById("creditText").disabled = !e.target.checked;
-  draw();
-});
+  /* 1. Let the container adapt to artwork proportions */
+  preview.style.aspectRatio = ratio;
 
-function draw() {
-  if (!img.src) return;
+  /* 2. Show preview once ratio is known */
+  preview.style.display = "block";
 
-  canvas.width = img.width;
-  canvas.height = img.height;
-
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.drawImage(img,0,0);
-
-  // credit
-  if (document.getElementById("creditToggle").checked) {
-    ctx.fillStyle = "rgba(0,0,0,0.7)";
-    ctx.font = "16px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(
-      document.getElementById("creditText").value || "",
-      canvas.width/2,
-      canvas.height - 10
-    );
-  }
+  /* 3. Set canvas internal resolution */
+  canvas.width = width;
+  canvas.height = height;
 }
 
-document.getElementById("download").addEventListener("click", () => {
-  if (!img.src) return;
-  const link = document.createElement("a");
-  link.download = "artwork-version.png";
-  link.href = canvas.toDataURL("image/png");
-  link.click();
-});
-
-document.getElementById("reset").addEventListener("click", () => {
-  window.location.reload();
-});
+function drawImageScaled() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+}
 </script>
 
 </body>
 </html>
+``
